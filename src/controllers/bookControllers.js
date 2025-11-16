@@ -3,14 +3,19 @@ import fs from "fs";
 import { PDFImage } from "pdf-image";
 import Book from "../models/book.js";
 
-// 🔧 helper para normalizar URLs
 const buildFileUrl = (req, filePath) => {
   if (!filePath) return null;
-  // já é uma URL completa? retorna direto
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    return filePath;
+
+  // Se for um caminho relativo, constrói a URL completa
+  if (!filePath.startsWith("http")) {
+    return `${req.protocol}://${req.get("host")}/${filePath.replace(
+      /\\/g,
+      "/"
+    )}`;
   }
-  return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
+
+  // Se já é URL completa, retorna como está
+  return filePath;
 };
 
 // Função para buscar todos os livros (paginado)
@@ -86,18 +91,14 @@ export const addBook = async (req, res) => {
       console.log("✅ Capa gerada:", imagePath);
     }
 
-    // URLs completas para o frontend
-    const fileUrl = buildFileUrl(req, pdfPath);
-    const imageUrl = buildFileUrl(req, imagePath);
-
     const newBook = new Book({
       title,
       caption,
       rating,
       type,
       user: req.user._id,
-      file: fileUrl,
-      image: imageUrl,
+      file: pdfPath,
+      image: imagePath,
       currentPage: 0,
     });
 
