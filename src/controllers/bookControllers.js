@@ -6,16 +6,24 @@ import Book from "../models/book.js";
 const buildFileUrl = (req, filePath) => {
   if (!filePath) return null;
 
-  // Se for um caminho relativo, constrói a URL completa
-  if (!filePath.startsWith("http")) {
-    return `${req.protocol}://${req.get("host")}/${filePath.replace(
-      /\\/g,
-      "/"
-    )}`;
-  }
+  // Normaliza barras
+  let cleanPath = filePath.replace(/\\/g, "/");
+
+  // Remove "src/" se existir (pois você serve "/uploads" como raiz pública)
+  cleanPath = cleanPath.replace(/^src\//, "");
 
   // Se já é URL completa, retorna como está
-  return filePath;
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
+  }
+
+  // Garante que o caminho começa com "uploads/"
+  if (!cleanPath.startsWith("uploads/")) {
+    cleanPath = cleanPath.replace(/^.*uploads\//, "uploads/");
+  }
+
+  // Monta URL completa acessível pelo frontend
+  return `${req.protocol}://${req.get("host")}/${cleanPath}`;
 };
 
 // Função para buscar todos os livros (paginado)
@@ -91,14 +99,17 @@ export const addBook = async (req, res) => {
       console.log("✅ Capa gerada:", imagePath);
     }
 
+    const pdfUrl = buildFileUrl(req, pdfPath);
+    const imageUrl = buildFileUrl(req, imagePath);
+
     const newBook = new Book({
       title,
       caption,
       rating,
       type,
       user: req.user._id,
-      file: pdfPath,
-      image: imagePath,
+      file: pdfUrl,
+      image: imageUrl,
       currentPage: 0,
     });
 
