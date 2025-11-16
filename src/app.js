@@ -12,10 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/api/admin", migrateRoutes);
-app.use(
-  "/src/uploads",
-  express.static(path.join(process.cwd(), "src/uploads"))
-);
+app.use("uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Rotas
 app.use("/api/auth", authRoutes);
