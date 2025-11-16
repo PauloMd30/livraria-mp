@@ -16,10 +16,16 @@ import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
+const uploadDir = path.join(process.cwd(), "uploads");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Configuração do Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = "./src/uploads";
+    const uploadDir = "uploads";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

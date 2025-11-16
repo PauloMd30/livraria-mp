@@ -83,15 +83,17 @@ export const addBook = async (req, res) => {
       imagePath = req.files["image"][0].path;
     } else {
       // Gera uma imagem a partir da primeira página do PDF
-      const outputDir = path.dirname(pdfPath);
+      const outputDir = path.join(process.cwd(), "uploads");
+
       const outputPrefix = path.basename(pdfPath, ".pdf");
 
       const pdfImage = new PDFImage(pdfPath, {
+        outputDirectory: outputDir,
+        outputPrefix,
         convertOptions: {
           "-resize": "1024x1024",
         },
-        outputDirectory: outputDir,
-        outputPrefix,
+        useOriginalPath: false, // ← ESSENCIAL!
       });
 
       console.log("🔄 Gerando capa a partir do PDF...");
@@ -151,7 +153,7 @@ export const getUserBooks = async (req, res) => {
 export const getPdf = async (req, res) => {
   try {
     const filename = req.params.filename;
-    const filePath = path.join("src/uploads", filename);
+    const filePath = path.join("uploads", filename);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).send("Arquivo não encontrado.");
