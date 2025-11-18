@@ -75,16 +75,13 @@ export const addBook = async (req, res) => {
       });
     }
 
-    const pdfPath = req.files["pdf"][0].path;
+    const pdfPath = req.files["pdf"][0].path; // ex: src/uploads/abc.pdf
     let imagePath;
 
     if (req.files["image"]) {
-      // Se o usuário enviou uma imagem manualmente
       imagePath = req.files["image"][0].path;
     } else {
-      // Gera uma imagem a partir da primeira página do PDF
       const outputDir = path.join(process.cwd(), "uploads");
-
       const outputPrefix = path.basename(pdfPath, ".pdf");
 
       const pdfImage = new PDFImage(pdfPath, {
@@ -93,33 +90,38 @@ export const addBook = async (req, res) => {
         convertOptions: {
           "-resize": "1024x1024",
         },
-        useOriginalPath: false, // ← ESSENCIAL!
+        useOriginalPath: false,
       });
 
-      console.log("🔄 Gerando capa a partir do PDF...");
-      imagePath = await pdfImage.convertPage(0); // primeira página
-      console.log("✅ Capa gerada:", imagePath);
+      imagePath = await pdfImage.convertPage(0);
     }
 
-    const pdfUrl = buildFileUrl(req, pdfPath);
-    const imageUrl = buildFileUrl(req, imagePath);
+    // REMOVE o "src/" para salvar apenas o caminho interno
+    const cleanPdfPath = pdfPath.replace(/^src\//, "");
+    const cleanImagePath = imagePath.replace(/^src\//, "");
 
+    // ✔ SALVANDO APENAS O CAMINHO RELATIVO
     const newBook = new Book({
       title,
       caption,
       rating,
       type,
       user: req.user._id,
-      file: pdfUrl,
-      image: imageUrl,
+      file: cleanPdfPath, // ex: uploads/abc.pdf
+      image: cleanImagePath, // ex: uploads/abc.png
       currentPage: 0,
     });
 
     await newBook.save();
 
+    // ✔ Retorna já com a URL completa
     res.status(201).json({
       message: "Livro adicionado com sucesso!",
-      book: newBook,
+      book: {
+        ...newBook.toObject(),
+        file: buildFileUrl(req, cleanPdfPath),
+        image: buildFileUrl(req, cleanImagePath),
+      },
     });
   } catch (error) {
     console.error("❌ Erro ao adicionar livro:", error);
@@ -128,6 +130,7 @@ export const addBook = async (req, res) => {
       .json({ message: "Erro ao adicionar livro.", error: error.message });
   }
 };
+
 // Função para obter livros do usuário autenticado
 export const getUserBooks = async (req, res) => {
   try {
