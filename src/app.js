@@ -7,20 +7,26 @@ import fs from "fs";
 import bookRoutes from "./routes/bookRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import migrateRoutes from "./routes/migrateRoutes.js";
+import adminMiddleware from "./middleware/admin.middleware.js";
 
 const app = express();
 
 app.use(express.json());
-app.use(cors());
-app.use("/api/admin", migrateRoutes);
+app.use(
+  cors({
+    origin: "*",
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-key"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/api/admin", adminMiddleware, migrateRoutes);
 
 const uploadsPath = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
   console.log("Pasta uploads criada automaticamente!");
 }
-
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Rotas
 app.use("/api/auth", authRoutes);
