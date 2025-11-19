@@ -74,12 +74,15 @@ export const addBook = async (req, res) => {
         message: "Preencha todos os campos obrigatórios.",
       });
     }
+    // Corrigir PDF path
+    let pdfPath = req.files["pdf"][0].path.replace(/\\/g, "/");
+    pdfPath = pdfPath.replace(/^.*uploads\//, "uploads/");
 
-    const pdfPath = req.files["pdf"][0].path; // ex: src/uploads/abc.pdf
     let imagePath;
 
     if (req.files["image"]) {
-      imagePath = req.files["image"][0].path;
+      imagePath = req.files["image"][0].path.replace(/\\/g, "/");
+      imagePath = imagePath.replace(/^.*uploads\//, "uploads/");
     } else {
       const outputDir = path.join(process.cwd(), "uploads");
       const outputPrefix = path.basename(pdfPath, ".pdf");
@@ -94,33 +97,31 @@ export const addBook = async (req, res) => {
       });
 
       imagePath = await pdfImage.convertPage(0);
+      imagePath = imagePath.replace(/\\/g, "/");
+      imagePath = imagePath.replace(/^.*uploads\//, "uploads/");
     }
 
-    // REMOVE o "src/" para salvar apenas o caminho interno
-    const cleanPdfPath = pdfPath.replace(/^src\//, "");
-    const cleanImagePath = imagePath.replace(/^src\//, "");
-
-    // ✔ SALVANDO APENAS O CAMINHO RELATIVO
+    //  SALVANDO APENAS O CAMINHO RELATIVO
     const newBook = new Book({
       title,
       caption,
       rating,
       type,
       user: req.user._id,
-      file: cleanPdfPath, // ex: uploads/abc.pdf
-      image: cleanImagePath, // ex: uploads/abc.png
+      file: pdfPath,
+      image: imagePath,
       currentPage: 0,
     });
 
     await newBook.save();
 
-    // ✔ Retorna já com a URL completa
+    // Retorna já com a URL completa
     res.status(201).json({
       message: "Livro adicionado com sucesso!",
       book: {
         ...newBook.toObject(),
-        file: buildFileUrl(req, cleanPdfPath),
-        image: buildFileUrl(req, cleanImagePath),
+        file: buildFileUrl(req, pdfPath),
+        image: buildFileUrl(req, imagePath),
       },
     });
   } catch (error) {

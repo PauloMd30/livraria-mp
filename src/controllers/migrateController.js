@@ -1,14 +1,5 @@
 import Book from "../models/book.js";
 
-// helper para construir URL
-const buildFileUrl = (req, filePath) => {
-  if (!filePath) return null;
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    return filePath; // já está ok
-  }
-  return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
-};
-
 export const migrateBooks = async (req, res) => {
   try {
     const books = await Book.find();
@@ -16,20 +7,36 @@ export const migrateBooks = async (req, res) => {
     let updatedCount = 0;
 
     for (const book of books) {
-      const newFile = buildFileUrl(req, book.file);
-      const newImage = buildFileUrl(req, book.image);
+      let file = book.file || "";
+      let image = book.image || "";
 
-      // Só atualiza se mudar algo
-      if (book.file !== newFile || book.image !== newImage) {
-        book.file = newFile;
-        book.image = newImage;
+      // Normaliza barras
+      file = file.replace(/\\/g, "/");
+      image = image.replace(/\\/g, "/");
+
+      // Remove paths absolutos "/usr/src/app/"
+      file = file.replace(/^.*uploads\//, "uploads/");
+      image = image.replace(/^.*uploads\//, "uploads/");
+
+      // Remove URLs completas
+      file = file.replace(/^https?:\/\/[^/]+\//, "");
+      image = image.replace(/^https?:\/\/[^/]+\//, "");
+
+      // Garante formato final
+      if (!file.startsWith("uploads/")) file = "uploads/" + file;
+      if (!image.startsWith("uploads/")) image = "uploads/" + image;
+
+      // Se mudou, atualiza
+      if (book.file !== file || book.image !== image) {
+        book.file = file;
+        book.image = image;
         await book.save();
         updatedCount++;
       }
     }
 
     res.json({
-      message: "Migração concluída",
+      message: "Migração concluída com sucesso",
       totalBooks: books.length,
       updatedCount,
     });
