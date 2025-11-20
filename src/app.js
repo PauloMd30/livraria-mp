@@ -19,7 +19,23 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// SERVIR UPLOADS (PDF inline + imagens normais)
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    const file = req.path.toLowerCase();
+
+    if (file.endsWith(".pdf")) {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "inline");
+    }
+
+    next();
+  },
+  express.static(path.join(process.cwd(), "uploads"))
+);
+
 app.use("/api/admin", adminMiddleware, migrateRoutes);
 
 const uploadsPath = path.join(process.cwd(), "uploads");
