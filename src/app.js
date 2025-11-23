@@ -12,6 +12,7 @@ import adminMiddleware from "./middleware/admin.middleware.js";
 const app = express();
 
 app.use(express.json());
+app.use("/pdfjs", express.static(path.join(process.cwd(), "public/pdfjs")));
 app.use(
   cors({
     origin: "*",
