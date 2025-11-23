@@ -12,7 +12,7 @@ import adminMiddleware from "./middleware/admin.middleware.js";
 const app = express();
 
 app.use(express.json());
-app.use("/pdfjs", express.static(path.join(process.cwd(), "public/pdfjs")));
+
 app.use(
   cors({
     origin: "*",
@@ -20,6 +20,17 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
+
+// Corrigir MIME de arquivos .mjs do PDF.js
+app.use("/pdfjs", (req, res, next) => {
+  if (req.path.endsWith(".mjs")) {
+    res.setHeader("Content-Type", "application/javascript");
+  }
+  next();
+});
+
+// Servir PDF.js corretamente
+app.use("/pdfjs", express.static(path.join(process.cwd(), "public/pdfjs")));
 
 // SERVIR UPLOADS (PDF inline + imagens normais)
 app.use(
@@ -45,7 +56,7 @@ if (!fs.existsSync(uploadsPath)) {
   console.log("Pasta uploads criada automaticamente!");
 }
 
-// Rotas
+// Rotas da API
 app.use("/api/auth", authRoutes);
 app.use("/api/book", bookRoutes);
 
